@@ -46,7 +46,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.ibnunaufal'
                 artifactId = 'nfctoolstki'
-                version = '1.5'
+                version = '1.6'
             }
         }
     }
