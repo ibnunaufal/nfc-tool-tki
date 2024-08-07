@@ -1,7 +1,7 @@
 
 # NFC Tools TKI
 
-NFC Tools TKI is a tool used to read NFC cards based on PT TKI's rules. Each time an NFC card is tapped, it reads the first 8 characters of the NFC ID.
+NFC Tools TKI is a tool used to read NFC cards based on PT TKI's rules.
 
 ## How to use
 
@@ -62,6 +62,51 @@ class CardCheckActivity : ClassNfc() {
     }
 
 }
+```
+
+### Additional Configuration
+If the app need to connect & read nfc from `Bluetooth Nfc Reader` device from tki, do this on `onCreate` of activity that currently used.
+```
+classNfcViewModel.setSelectedBluetoothDeviceAddress(btDeviceAddress)
+```
+`btDeviceAddress` refers to `Bluetooth Nfc Reader` bluetooth address, that have format like "00:00:00:00:00:00".
+
+
+#### How to get the bluetooth address?
+Here is it the example of dialog showing bluetooth devices list, to get the exact bluetooth address just get `device.address` after device selected.
+
+```
+private fun showBluetoothDeviceDialog() {
+        if (
+            (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        ){
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                1
+            )
+        }
+        val bondedDevices = bluetoothAdapter?.bondedDevices
+        val deviceNames = bondedDevices?.map { it.name }?.toTypedArray()
+
+        if (deviceNames != null && deviceNames.isNotEmpty()) {
+            AlertDialog.Builder(this).apply {
+                setTitle("Select Bluetooth Device")
+                setItems(deviceNames) { dialog, which ->
+                    val device = bondedDevices.elementAt(which)
+                    
+                    /// here you can get the device.address
+                }
+                setNegativeButton("Cancel", null)
+                show()
+            }
+        } else {
+            Toast.makeText(this, "No bonded devices found", Toast.LENGTH_SHORT).show()
+        }
+    }
 ```
 
 ## Authors

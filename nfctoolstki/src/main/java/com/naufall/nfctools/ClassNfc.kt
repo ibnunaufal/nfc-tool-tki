@@ -1,18 +1,26 @@
 package com.naufall.nfctools
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.device.PiccManager
 import android.nfc.NfcAdapter
 import android.nfc.NfcManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.os.Message
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import com.naufall.nfctools.utils.ByteUtils
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +28,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.io.InputStream
+import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -36,6 +47,11 @@ open class ClassNfc: AppCompatActivity() {
     var SNLen = -1
     lateinit var repeatCardReader: Job
 
+    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private var bluetoothSocket: BluetoothSocket? = null
+
+    private val handlerBluetooth = Handler(Looper.getMainLooper())
+
     lateinit var classNfcViewModel: ClassNfcViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,7 +59,16 @@ open class ClassNfc: AppCompatActivity() {
         initNfcAdapter()
 
         classNfcViewModel = ClassNfcViewModel()
+        classNfcViewModel.selectedBluetoothDeviceAddress.observe(this) {
+            try {
+                val device = bluetoothAdapter?.getRemoteDevice(it)
+                connectToDevice(device!!)
 
+            } catch (e: Exception) {
+                Log.e("ClassNfc", "Error connecting to bluetooth device", e)
+
+            }
+        }
     }
 
     override fun onResume() {
@@ -188,6 +213,90 @@ open class ClassNfc: AppCompatActivity() {
         buffer = buffer.takeLast(8)
         nfcid = buffer
         return  nfcid
+    }
+
+    private fun connectToDevice(device: BluetoothDevice) {
+        if (
+            (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        ){
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                1
+            )
+        }
+        val uuid = device.uuids[0].uuid
+        ConnectThread(device, uuid).start()
+    }
+    private inner class ConnectThread(private val device: BluetoothDevice, private val uuid: UUID) : Thread() {
+        override fun run() {
+            try {
+
+                if (
+                    (ActivityCompat.checkSelfPermission(
+                        this@ClassNfc,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                ){
+                    ActivityCompat.requestPermissions(
+                        this@ClassNfc,
+                        arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                        1
+                    )
+                }
+                bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
+                bluetoothSocket?.connect()
+
+                runOnUiThread {
+                    Toast.makeText(this@ClassNfc, "Connected to ${device.name}", Toast.LENGTH_SHORT).show()
+                }
+
+                ConnectedThread(bluetoothSocket!!).start()
+            } catch (e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@ClassNfc, "Connection failed", Toast.LENGTH_SHORT).show()
+                }
+                try {
+                    bluetoothSocket?.close()
+                } catch (closeException: IOException) {
+                    closeException.printStackTrace()
+                }
+            }
+        }
+    }
+    private inner class ConnectedThread(private val socket: BluetoothSocket) : Thread() {
+        private val inputStream: InputStream = socket.inputStream
+
+        override fun run() {
+            val buffer = ByteArray(1024)
+            var bytes: Int
+
+            while (true) {
+                try {
+                    bytes = inputStream.read(buffer)
+                    val readMessage = String(buffer, 0, bytes)
+
+                    handlerBluetooth.post {
+                        classNfcViewModel.setNfcValue(readMessage)
+                        Log.d("ConnectedThread", "nfc: $readMessage")
+                    }
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    break
+                }
+            }
+        }
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            bluetoothSocket?.close()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
     }
 
 }
