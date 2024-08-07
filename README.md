@@ -49,35 +49,20 @@ dependencies {
 
 ### 3. Implement NFC Reading
 
-For every activity that needs to read NFC, inherit from `ClassNfc()`. In the `onNewIntent()` method, call `getValidNfcFromIntent()`, which will return the NFC ID as a string. Here the usage example below:
-
+For every activity that needs to read NFC, inherit instance from `ClassNfc()`. To get the tapped nfcId, observe livedata from `ClassNfcViewModel` that represent current detected nfc id. Check this example below:
 
 ```
 class CardCheckActivity : ClassNfc() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_card_check)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        
+        classNfcViewModel.nfcValue.observe(this) {
+            Log.d("classNfcViewModel", "detected nfc: $it")
         }
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        val nfc = getValidNfcFromIntent(intent)
-        val tvNfc = findViewById<TextView>(R.id.nfc)
-        tvNfc.text = nfc
-    }
 }
-
-
 ```
-
-In `CardCheckActivity()`, which inherits from `ClassNfc()`, every time a card is tapped, it will return the NFC ID as a string from `getValidNfcFromIntent()`.
-
 
 ## Authors
 
