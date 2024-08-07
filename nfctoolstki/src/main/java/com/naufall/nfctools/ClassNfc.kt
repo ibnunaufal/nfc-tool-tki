@@ -12,9 +12,14 @@ import androidx.appcompat.app.AppCompatActivity
 open class ClassNfc: AppCompatActivity() {
     private var adapter: NfcAdapter? = null
 
+    lateinit var classNfcViewModel: ClassNfcViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initNfcAdapter()
+
+        classNfcViewModel = ClassNfcViewModel()
+
     }
 
     override fun onResume() {
@@ -50,4 +55,9 @@ open class ClassNfc: AppCompatActivity() {
         adapter = nfcManager.defaultAdapter
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val nfcValue = NfcTools.getValidNfcFromIntent(intent)
+        classNfcViewModel.setNfcValue(nfcValue)
+    }
 }
