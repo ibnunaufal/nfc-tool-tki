@@ -4,8 +4,10 @@ import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
 import android.nfc.FormatException
+import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.nfc.Tag
+import android.nfc.tech.Ndef
 import android.util.Log
 import com.naufall.nfctools.utils.WriteableTag
 
@@ -66,6 +68,38 @@ object NfcTools {
             return emptyList()
         }
         return tag!!.tagTechList
+    }
+
+    fun writeNfcTag(intent: Intent, data: String) {
+        val tagFromIntent = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        try {
+            val ndef = Ndef.get(tagFromIntent)
+            ndef.connect()
+            ndef.writeNdefMessage(NdefMessage(data.toByteArray()))
+            ndef.close()
+        } catch (e: FormatException) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+        }
+    }
+
+    fun readNfcTag(intent: Intent) {
+        val tagFromIntent = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        try {
+            if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
+                // Ta-da! Handle NFC data here
+                val ndef = Ndef.get(tagFromIntent)
+                ndef.connect()
+                val message = ndef.ndefMessage
+                ndef.close()
+            }
+//            val ndef = Ndef.get(tagFromIntent)
+//            ndef.connect()
+//            val message = ndef.ndefMessage
+//            ndef.close()
+//            return String(message.records[0].payload)
+        } catch (e: FormatException) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+        }
     }
 
     /**
@@ -153,6 +187,47 @@ object NfcTools {
         }
         Log.d("nfc", "takeLastEightNumber " + nfcid)
         return nfcid
+    }
+
+    fun getNfcSerialOriginalFromIntent(intent: Intent): String {
+        var tag: WriteableTag? = null
+        var tagId: String? = null
+        val tagFromIntent = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        try {
+            tag = tagFromIntent?.let { WriteableTag(it) }
+        } catch (e: FormatException) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+            return ""
+        }
+        tagId = tag!!.tagId
+
+        return tagId.toString()
+    }
+
+    fun getNfcSerialFlippedFromIntent(intent: Intent): String {
+        var tag: WriteableTag? = null
+        var tagId: String? = null
+        val tagFromIntent = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        try {
+            tag = tagFromIntent?.let { WriteableTag(it) }
+        } catch (e: FormatException) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+            return ""
+        }
+        tagId = tag!!.tagId
+        Log.d("nfc", "getNfcHexFromIntentFlipped $tagId")
+
+        val str = tagId.toString()
+
+        var buffer = ""
+
+        for (index in str.length - 1 downTo 1 step 2) {
+            buffer += str[index - 1]
+            buffer += str[index] + ""
+        }
+        buffer = buffer.trim()
+
+        return buffer
     }
 
 }
