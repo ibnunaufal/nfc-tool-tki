@@ -71,6 +71,16 @@ open class ClassNfc: AppCompatActivity() {
         }
     }
 
+    /**
+     * Re-call the onResume method after the fragment is dismissed
+     */
+    fun callOnResume () {
+        onResume()
+    }
+
+    /**
+     * Initialize the NFC adapter
+     */
     override fun onResume() {
         super.onResume()
         enableNfcForegroundDispatch()
@@ -80,6 +90,9 @@ open class ClassNfc: AppCompatActivity() {
         }
     }
 
+    /**
+     * Disable the NFC foreground dispatch, also pause the urovo reader
+     */
     override fun onPause() {
         super.onPause()
         disableNfcForegroundDispatch()
