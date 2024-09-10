@@ -12,7 +12,7 @@ class ClassNfcViewModel: ViewModel() {
         get() = _nfcValue
 
     fun setNfcValue(value: String) {
-        _nfcValue.value = value
+        _nfcValue.value = value.replace("\n", "").trim()
     }
 
     private val _selectedBluetoothDeviceAddress = MutableLiveData<String>()
