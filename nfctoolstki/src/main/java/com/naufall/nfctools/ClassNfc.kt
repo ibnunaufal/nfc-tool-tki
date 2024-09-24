@@ -242,6 +242,7 @@ open class ClassNfc: AppCompatActivity() {
             )
         }
         val uuid = device.uuids[0].uuid
+        classNfcViewModel.setIsConnectingBluetoothDevice(true)
         ConnectThread(device, uuid).start()
     }
     private inner class ConnectThread(private val device: BluetoothDevice, private val uuid: UUID) : Thread() {
@@ -264,13 +265,15 @@ open class ClassNfc: AppCompatActivity() {
                 bluetoothSocket?.connect()
 
                 runOnUiThread {
-                    Toast.makeText(this@ClassNfc, "Connected to ${device.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClassNfc, "Berhasil terhubung ke ${device.name}", Toast.LENGTH_SHORT).show()
+                    classNfcViewModel.setIsConnectingBluetoothDevice(false)
                 }
 
                 ConnectedThread(bluetoothSocket!!).start()
             } catch (e: IOException) {
                 runOnUiThread {
-                    Toast.makeText(this@ClassNfc, "Connection failed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClassNfc, "Gagal menghubungkan ke ${device.name}", Toast.LENGTH_SHORT).show()
+                    classNfcViewModel.setIsConnectingBluetoothDevice(false)
                 }
                 try {
                     bluetoothSocket?.close()

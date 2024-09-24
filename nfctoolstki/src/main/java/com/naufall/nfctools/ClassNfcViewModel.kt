@@ -32,4 +32,10 @@ class ClassNfcViewModel: ViewModel() {
         _selectedBluetoothDeviceAddress.value = value
     }
 
+    private val _isConnectingBluetoothDevice = MutableLiveData<Boolean>()
+    val isConnectingBluetoothDevice: LiveData<Boolean>
+        get() = _isConnectingBluetoothDevice
+    fun setIsConnectingBluetoothDevice(value: Boolean) {
+        _isConnectingBluetoothDevice.value = value
+    }
 }
