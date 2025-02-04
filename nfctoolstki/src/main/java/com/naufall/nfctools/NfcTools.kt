@@ -4,10 +4,14 @@ import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
 import android.nfc.FormatException
+import android.nfc.NdefMessage
+import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.Tag
+import android.nfc.tech.Ndef
 import android.util.Log
 import com.naufall.nfctools.utils.WriteableTag
+import java.nio.charset.Charset
 
 
 object NfcTools {
@@ -110,6 +114,58 @@ object NfcTools {
         }
         Log.d("nfc", "takeFirstEightNumber " + nfcid)
         return nfcid
+    }
+
+    /**
+     * Write hex string to nfc tag
+     * */
+    fun writeHexToNfcTag(intent: Intent, hexString: String): Boolean? {
+        var tag: WriteableTag? = null
+        val tagFromIntent = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        try {
+            tag = tagFromIntent?.let { WriteableTag(it) }
+        } catch (e: FormatException) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+            return false
+        }
+        // Convert "Hello" to NdefMessage
+        val ndefRecord = NdefRecord.createTextRecord(null, hexString)
+        val ndefMessage = NdefMessage(arrayOf(ndefRecord))
+
+        // Convert "Hello" to ByteArray
+        val messageA = hexString.toByteArray(Charset.forName("UTF-8"))
+
+        return tag?.tagId?.let { tag.writeData(it, ndefMessage, messageA) }
+    }
+
+    /**
+     * Get readable string from nfc tag
+     */
+    fun getReadableString(intent: Intent): String {
+        var readableString = ""
+        val tagFromIntent = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        try {
+            val ndef = Ndef.get(tagFromIntent)
+            if (ndef != null) {
+                ndef.connect()
+                val ndefMessage = ndef.ndefMessage
+                ndef.close()
+                if (ndefMessage != null) {
+                    for (ndefRecord in ndefMessage.records) {
+                        Log.d("nfc", "getReadableString: " + ndefRecord.toUri())
+                    }
+                    val firstNdefRecord = ndefMessage.records[0]
+                    readableString = firstNdefRecord.payload.toString(Charset.forName("UTF-8"))
+                }
+            }
+            return readableString
+        } catch (e: FormatException) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+            return ""
+        } catch (e: Exception) {
+            Log.e("handleOnNewIntentNfc", "Unsupported tag tapped", e)
+            return ""
+        }
     }
 
     /**

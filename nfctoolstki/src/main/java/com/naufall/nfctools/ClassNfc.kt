@@ -54,6 +54,9 @@ open class ClassNfc: AppCompatActivity() {
 
     lateinit var classNfcViewModel: ClassNfcViewModel
 
+    // bridge from view and viewmodel
+    private var localStringToWrite = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initNfcAdapter()
@@ -68,6 +71,10 @@ open class ClassNfc: AppCompatActivity() {
                 Log.e("ClassNfc", "Error connecting to bluetooth device", e)
 
             }
+        }
+        // observe the stringToWrite from viewmodel then save in on localStringToWrite variable
+        classNfcViewModel.stringToWrite.observe(this) {
+            localStringToWrite = it
         }
     }
 
@@ -131,8 +138,16 @@ open class ClassNfc: AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (localStringToWrite.isNotEmpty()){
+            NfcTools.writeHexToNfcTag(intent, localStringToWrite)
+            localStringToWrite = ""
+            classNfcViewModel.setStringToWrite(localStringToWrite)
+            classNfcViewModel.setIsOnWritingProcess(false)
+        }
         val nfcValue = NfcTools.getValidNfcFromIntent(intent)
+        val readableString = NfcTools.getReadableString(intent)
         classNfcViewModel.setNfcValue(nfcValue)
+        classNfcViewModel.setReadableString(readableString)
     }
 
     private fun initializeUrovo() {
@@ -228,6 +243,9 @@ open class ClassNfc: AppCompatActivity() {
         return  nfcid
     }
 
+    /**
+     * Use this method to connect to a nfc bluetooth device
+     */
     private fun connectToDevice(device: BluetoothDevice) {
         if (
             (ActivityCompat.checkSelfPermission(

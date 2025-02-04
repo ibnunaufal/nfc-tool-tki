@@ -64,6 +64,29 @@ class CardCheckActivity : ClassNfc() {
 }
 ```
 
+### 4. Implement NFC Writing
+
+For every activity that needs to read NFC, inherit instance from `ClassNfc()`. For example we want to write "Hello" into a nfc card, we can use `setStringToWrite` from `ClassNfcViewModel`. 
+Whenever string to write is set, the app will automatically write the string to the nfc card when the card is tapped.
+Check this example below:
+
+```
+class CardCheckActivity : ClassNfc() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        classNfcViewModel.setStringToWrite("Hello")
+        // then tap the nfc card, you can give a toast or something to notify the user to tap the card
+    }
+
+}
+```
+### <span style="color:red">Additional Note when writing NFC</span>
+When stringToWrite variable on `ClassNfcViewModel` is set (not empty), whatever nfc card tapped will be written with the string. To avoid this, make sure to set the stringToWrite to empty string after the nfc card is tapped or we want to cancel the writing process.
+
+
+
+
 ### Additional Configuration
 If the app need to connect & read nfc from `Bluetooth Nfc Reader` device from tki, do this on `onCreate` of activity that currently used.
 ```
